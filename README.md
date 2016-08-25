@@ -11,6 +11,21 @@ content.
 
 This software is NOT part of GNU Emacs. 
 
+## Advantages
+
+There are dozens of screenwriting software out there, and at least a
+few other screenwriting modes for Emacs. Why should you use
+`screenplay-mode`?
+
+- Compatibility: it saves the screenplays in plain text, meaning they
+will be compatible across all platforms, forever
+
+- Simplicity: `screenplay-emode` is developed for simplicity and
+effectiveness, so that you can focus on creating; you can start using
+and mastering this mode in a few minutes
+
+- Freedom: released under the GNU GPL v3
+
 ## Commands
 
 There are only two commands required in this mode:
@@ -33,6 +48,10 @@ block according to industry standards.
 
 If the line has text in it when changing indentations, the line will
 be indented again.
+
+If you accidentally started writing a paragraph in the wrong
+indentation, you can just go to the right indentations and press `M-q`
+(`fill-paragraph`) to adjust to the new indentation.
 
 ## License
 

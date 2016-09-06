@@ -53,6 +53,10 @@ If you accidentally started writing a paragraph in the wrong
 indentation, you can just go to the right indentations and press `M-q`
 (`fill-paragraph`) to adjust to the new indentation.
 
+## File Extension
+
+`screenplay-mode` automatically loads `.scr` files as screenplay files.
+
 ## License
 
 This software is released under the GNU GPL v3.0. See the COPYING file

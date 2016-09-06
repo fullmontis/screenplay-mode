@@ -27,6 +27,10 @@
 ;; - when adding text in uppercase states the last word gets upcased 
 ;; - when filling paragraphs, the hanging indents are not removed
 ;; - currently only one line parentheticals are supported
+;; - upcase function can erroneously upcase a word in the previous
+;;   line, should be limited to current line only
+;; - using newline when at the end of a parenthetical but before the
+;;   parenthesis should directly go to the next line
 
 ;; Since the blocks are not regular paragraphs and are defined not by
 ;; some character strings but only by the left margin, we have to
@@ -74,6 +78,8 @@ at the end of the mode line.
   (define-key screenplay-mode-map (kbd "<tab>") 'screenplay-next-indent)
   (define-key screenplay-mode-map (kbd "<backtab>") 'screenplay-previous-indent)
   (define-key screenplay-mode-map (kbd "C-c C-u") 'screenplay-upcase-line)
+  (define-key screenplay-mode-map (kbd "C-<up>") 'screenplay-backward-paragraph)
+  (define-key screenplay-mode-map (kbd "C-<down>") 'screenplay-forward-paragraph)
   (add-hook 'post-self-insert-hook 'screenplay-post-self-insert-hook nil t)
   (screenplay-mode-line-show)
   (screenplay-update-indent))
@@ -197,5 +203,88 @@ at the end of the mode line.
   (fill-paragraph))
 
 (setq fill-paragraph-function 'screenplay-fill-paragraph)
+
+(defun screenplay-on-last-line-p ()
+  (eq (line-end-position) (point-max)))
+
+(defun screenplay-on-first-line-p ()
+  (eq (line-beginning-position) (point-min)))
+
+(defun screenplay-match-indentation-p ()
+  "Tells if the indentation between the current line and the line
+above matches. 
+
+Returns t if we are in the first line of the file."
+  (if (not (screenplay-on-first-line-p))
+      (save-excursion
+	(let (this-line-indent)
+	  (back-to-indentation)
+	  (setq this-line-indent (- (point) (line-beginning-position))) 
+	  (previous-line)
+	  (back-to-indentation)
+	  (if (eq (- (point) (line-beginning-position)) this-line-indent)
+	      t
+	    nil)))
+    t))
+
+(defun screenplay-is-on-paragraph-start-p ()
+  (if (looking-at "[ \t]*$") ; empty line, start of paragraph
+      t
+    (if (not (screenplay-match-indentation-p))
+	t
+      nil)))
+
+(defun screenplay-is-line-empty-p (&optional arg)
+  (if (not arg) (setq arg 0))
+  (save-excursion
+    (next-line arg)
+    (move-beginning-of-line nil)
+    (looking-at "[ \t]*$")))
+
+(defun screenplay-forward-paragraph ()
+  (interactive)
+  (let ((is-par-start nil))
+    (while (not is-par-start)
+      (if (screenplay-on-last-line-p) ; end of file
+	  (progn
+	    (move-end-of-line nil)
+	    (setq is-par-start t))
+	(next-line 1)
+	(if (not (screenplay-is-line-empty-p))
+	    (progn
+	      (if (screenplay-is-line-empty-p -1)
+		  (progn
+		    (back-to-indentation)
+		    (setq is-par-start t))
+		(if (not (screenplay-match-indentation-p))
+		    (progn
+		      (back-to-indentation)
+		      (setq is-par-start t))))))))))
+
+(defun screenplay-backward-paragraph ()
+  (interactive)
+  (let ((is-par-start nil))
+    (while (not is-par-start)
+      (if (screenplay-on-first-line-p) 
+	  (progn
+	    (back-to-indentation)
+	    (setq is-par-start t))
+	;; if we are already at the beginning of line, go to previous line
+	(if (eq (point)
+		(progn
+		  (back-to-indentation)
+		  (point)))
+	    (previous-line))
+	(if (not (screenplay-is-line-empty-p))
+	    (progn
+	      (if (or (screenplay-on-first-line-p)
+		      (screenplay-is-line-empty-p -1))
+		  (progn
+		    (back-to-indentation)
+		    (setq is-par-start t))
+		(if (not (screenplay-match-indentation-p))
+		    (progn
+		      (back-to-indentation)
+		      (setq is-par-start t))))))))))
 
 (provide 'screenplay)

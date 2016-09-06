@@ -17,17 +17,17 @@ There are dozens of screenwriting software out there, and at least a
 few other screenwriting modes for Emacs. Why should you use
 `screenplay-mode`?
 
-- Compatibility: it saves the screenplays in plain text, meaning they
+- *Compatibility*: it saves the screenplays in plain text, meaning they
 will be compatible across all platforms, forever
 
-- Simplicity: `screenplay-mode` is developed for simplicity and
+- *Simplicity*: `screenplay-mode` is developed for simplicity and
 effectiveness, so that you can focus on creating; you can start using
 and mastering this mode in a few minutes
 
-- Fast: you can write a screenplay at the speed of though with just
+- *Fast*: you can write a screenplay at the speed of though with just
 one command to move through the various indentations. 
 
-- Freedom: released under the GNU GPL v3
+- *Freedom*: released under the GNU GPL v3
 
 ## Commands
 

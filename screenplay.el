@@ -1,5 +1,5 @@
 ;; screenplay-mode: an emacs major mode for editing text-based screenplays
-;; Copyright (C) 2016 Andrea Montagna
+;; Copyright (C) 2016 Andrea Montagna <montagna.and@gmail.com>
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,21 +23,11 @@
 
 ;; TOFIX:
 ;; - do not verify indent by string but by value for clearer results
-;; - when adding text in uppercase states the last word gets upcased 
 ;; - currently only one line parentheticals are supported
-;; - upcase function can erroneously upcase a word in the previous
-;;   line, should be limited to current line only
-;; - using newline when at the end of a parenthetical but before the
-;;   parenthesis should directly go to the next line
 ;; - using fill-paragraph depends on the current intent state which can be confusing
-
-;; Since the blocks are not regular paragraphs and are defined not by
-;; some character strings but only by the left margin, we have to
-;; develop custom functions to move around paragraphs and such. The
-;; most important ones are backward-paragrah and forward-paragraph.
-
-;; This is important for correctly filling out the paragraphs and
-;; moving around.
+;; - program should find the indentation state depending on the current line indentation
+;; - filling should fill all parts that don't fit the current indentation
+;; - backspace on blank line should remove the line
 
 (defconst screenplay-version "0.1.0"
   "Current screenplay-mode version number")
@@ -79,6 +69,8 @@ at the end of the mode line.
   (define-key screenplay-mode-map (kbd "C-c C-u") 'screenplay-upcase-line)
   (define-key screenplay-mode-map (kbd "C-<up>") 'screenplay-backward-paragraph)
   (define-key screenplay-mode-map (kbd "C-<down>") 'screenplay-forward-paragraph)
+  (define-key screenplay-mode-map (kbd "RET") 'screenplay-newline-and-indent)
+  
   (add-hook 'post-self-insert-hook 'screenplay-post-self-insert-hook nil t)
   (screenplay-mode-line-show)
   (screenplay-update-indent))
@@ -314,11 +306,22 @@ Returns t if we are in the first line of the file."
 
 (defun screenplay-fill-paragraph (&optional justify)
   (interactive "P")
-  (screenplay-remove-indentation)
-  (fill-region-as-paragraph (screenplay-start-of-paragraph)
-			    (screenplay-end-of-paragraph))
-  t)
+  (let ((start (screenplay-start-of-paragraph))
+	(end (screenplay-end-of-paragraph)))
+    (screenplay-remove-indentation)
+    (fill-region-as-paragraph start end)
+    t))
 
 (setq fill-paragraph-function 'screenplay-fill-paragraph)
+
+(defun screenplay-newline-and-indent ()
+  (interactive)
+  (and
+   (string-equal (screenplay-indent-name screenplay-current-indent)
+		 (screenplay-indent-name sp-parenthetical))
+   (looking-at ")$")
+   (move-end-of-line nil))
+  (newline)
+  (indent-to-left-margin))
 
 (provide 'screenplay)

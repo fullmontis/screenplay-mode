@@ -19,13 +19,13 @@
 ;; - PDF export
 ;; - title page
 ;; - conversion from/to fountain
+;; - auto add character names to a list
 
 ;; TOFIX:
 ;; - When using fill-paragraph on dialogue block, the name and
 ;;   dialogue box get mixed together
 ;; - do not verify indent by string but by value for clearer results
 ;; - when adding text in uppercase states the last word gets upcased 
-;; - when filling paragraphs, the hanging indents are not removed
 ;; - currently only one line parentheticals are supported
 ;; - upcase function can erroneously upcase a word in the previous
 ;;   line, should be limited to current line only
@@ -192,31 +192,20 @@ at the end of the mode line.
 	      (string-equal indent "Transition"))
       (upcase-word -1))))
 
-(defun screenplay-remove-indentation ()
-  (backward-paragraph)
-  (skip-chars-forward " \n\t")
-  (indent-to-left-margin))
-
-(defun screenplay-fill-paragraph (&optional justify)
-  (interactive "P")
-  (screenplay-remove-indentation)
-  (fill-paragraph))
-
-(setq fill-paragraph-function 'screenplay-fill-paragraph)
-
 (defun screenplay-on-last-line-p ()
   (eq (line-end-position) (point-max)))
 
 (defun screenplay-on-first-line-p ()
   (eq (line-beginning-position) (point-min)))
 
-(defun screenplay-match-indentation-p ()
+(defun screenplay-match-indentation-p (&optional arg)
   "Tells if the indentation between the current line and the line
 above matches. 
 
 Returns t if we are in the first line of the file."
   (if (not (screenplay-on-first-line-p))
       (save-excursion
+	(if arg (next-line arg))
 	(let (this-line-indent)
 	  (back-to-indentation)
 	  (setq this-line-indent (- (point) (line-beginning-position))) 
@@ -241,6 +230,17 @@ Returns t if we are in the first line of the file."
     (move-beginning-of-line nil)
     (looking-at "[ \t]*$")))
 
+;; Since in the case of screenplays a block or paragraph is defined
+;; not by simple regexp but also by indentation, these custom
+;; functions have been created to allow this.
+
+;; The screenplay-forward-paragraph and screenplay-backward-paragraph
+;; search for the first line before or after point that is not empty
+;; and that either has an empty line before, or has a different
+;; intentation from the previous line.
+
+;; These functions are used to fill correctly the different blocks. 
+
 (defun screenplay-forward-paragraph ()
   (interactive)
   (let ((is-par-start nil))
@@ -259,7 +259,8 @@ Returns t if we are in the first line of the file."
 		(if (not (screenplay-match-indentation-p))
 		    (progn
 		      (back-to-indentation)
-		      (setq is-par-start t))))))))))
+		      (setq is-par-start t)))))))))
+  (point))
 
 (defun screenplay-backward-paragraph ()
   (interactive)
@@ -285,6 +286,40 @@ Returns t if we are in the first line of the file."
 		(if (not (screenplay-match-indentation-p))
 		    (progn
 		      (back-to-indentation)
-		      (setq is-par-start t))))))))))
+		      (setq is-par-start t)))))))))
+  (point))
+
+(defun screenplay-start-of-paragraph ()
+  (interactive)
+  (save-excursion
+    (move-end-of-line nil)
+    (screenplay-backward-paragraph)))
+
+(defun screenplay-end-of-paragraph ()
+  (interactive)
+  (save-excursion
+    (while (if (or (screenplay-on-last-line-p)
+		   (and
+		    (not (screenplay-is-line-empty-p))
+		    (or
+		     (not (screenplay-match-indentation-p 1))
+		     (screenplay-is-line-empty-p 1))))
+	       (move-end-of-line nil)
+	     t)
+      (next-line))
+  (point)))
+
+(defun screenplay-remove-indentation ()
+  (goto-char (screenplay-start-of-paragraph))
+  (indent-to-left-margin))
+
+(defun screenplay-fill-paragraph (&optional justify)
+  (interactive "P")
+  (screenplay-remove-indentation)
+  (fill-region-as-paragraph (screenplay-start-of-paragraph)
+			    (screenplay-end-of-paragraph))
+  t)
+
+(setq fill-paragraph-function 'screenplay-fill-paragraph)
 
 (provide 'screenplay)

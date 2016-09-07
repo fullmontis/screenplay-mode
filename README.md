@@ -33,9 +33,12 @@ one command to move through the various indentations.
 
 There are only two commands required in this mode:
 
-* `<tab>` for moving indentation forward
+* `<tab>` for moving indentation forward. Use prefix `C-u <tab>` to
+indent the current line to the active indentation. 
 * `<backtab>` (which defaults to `Shift-TAB`) for moving indentation
 backwards
+* `C-c C-u` to upcase the current line
+* `C-<up>` and `C-<down>` to go to previous/next block
 
 The commands above loop through the following indentations (when the
 last indentation is reached, the indentations loop to the first one):

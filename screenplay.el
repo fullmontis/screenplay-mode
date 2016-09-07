@@ -22,8 +22,6 @@
 ;; - auto add character names to a list
 
 ;; TOFIX:
-;; - When using fill-paragraph on dialogue block, the name and
-;;   dialogue box get mixed together
 ;; - do not verify indent by string but by value for clearer results
 ;; - when adding text in uppercase states the last word gets upcased 
 ;; - currently only one line parentheticals are supported
@@ -31,6 +29,7 @@
 ;;   line, should be limited to current line only
 ;; - using newline when at the end of a parenthetical but before the
 ;;   parenthesis should directly go to the next line
+;; - using fill-paragraph depends on the current intent state which can be confusing
 
 ;; Since the blocks are not regular paragraphs and are defined not by
 ;; some character strings but only by the left margin, we have to
@@ -190,7 +189,7 @@ at the end of the mode line.
     (when (or (string-equal indent "Slugline")
 	      (string-equal indent "Character Name")
 	      (string-equal indent "Transition"))
-      (upcase-word -1))))
+      (insert (upcase (delete-and-extract-region (- (point) 1) (point)))))))
 
 (defun screenplay-on-last-line-p ()
   (eq (line-end-position) (point-max)))

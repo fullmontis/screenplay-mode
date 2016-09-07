@@ -27,8 +27,6 @@
 ;; - using fill-paragraph depends on the current intent state which can be confusing
 ;; - program should find the indentation state depending on the current line indentation
 ;; - filling should fill all parts that don't fit the current indentation
-;; - backspace on blank line should remove the line
-;; - if we are on an empty line, filling a block fills both separated blocks together
 
 (defconst screenplay-version "0.1.0"
   "Current screenplay-mode version number")
@@ -71,6 +69,7 @@ at the end of the mode line.
   (define-key screenplay-mode-map (kbd "C-<up>") 'screenplay-backward-paragraph)
   (define-key screenplay-mode-map (kbd "C-<down>") 'screenplay-forward-paragraph)
   (define-key screenplay-mode-map (kbd "RET") 'screenplay-newline-and-indent)
+  (define-key screenplay-mode-map (kbd "DEL") 'screenplay-delete-backward-char)
   
   (add-hook 'post-self-insert-hook 'screenplay-post-self-insert-hook nil t)
   (screenplay-mode-line-show)
@@ -328,5 +327,17 @@ Returns t as required by fill-paragraph-function."
    (move-end-of-line nil))
   (newline)
   (indent-to-left-margin))
+
+(defun screenplay-delete-backward-char (N &optional KILLFLAG)
+  "Custom delete function for screenplay-mode.
+
+It deletes an empty line if it is empty, otherwise just calls delete-backward-char."
+  (interactive "p\nP")
+  (if (screenplay-is-line-empty-p)
+      (let ((end (line-end-position)))
+	(previous-line)
+	(move-end-of-line nil)
+	(delete-region (point) end))
+    (delete-backward-char N KILLFLAG)))
 
 (provide 'screenplay)

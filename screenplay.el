@@ -28,6 +28,7 @@
 ;; - program should find the indentation state depending on the current line indentation
 ;; - filling should fill all parts that don't fit the current indentation
 ;; - backspace on blank line should remove the line
+;; - if we are on an empty line, filling a block fills both separated blocks together
 
 (defconst screenplay-version "0.1.0"
   "Current screenplay-mode version number")
@@ -305,9 +306,13 @@ Returns t if we are in the first line of the file."
   (indent-to-left-margin))
 
 (defun screenplay-fill-paragraph (&optional justify)
+  "Fills the following or current block according to the current
+indentation state.
+
+Returns t as required by fill-paragraph-function."
   (interactive "P")
-  (let ((start (screenplay-start-of-paragraph))
-	(end (screenplay-end-of-paragraph)))
+  (let* ((end (goto-char (screenplay-end-of-paragraph)))
+	(start (screenplay-start-of-paragraph)))
     (screenplay-remove-indentation)
     (fill-region-as-paragraph start end)
     t))

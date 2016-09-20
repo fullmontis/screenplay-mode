@@ -15,20 +15,19 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;; TODO: 
-;; - make ctrl-j default (always go to left-margin)
 ;; - PDF export
 ;; - title page
 ;; - conversion from/to fountain
-;; - auto add character names to a list
+;; - scene numbers
 
 ;; TOFIX:
-;; - do not verify indent by string but by value for clearer results
 ;; - currently only one line parentheticals are supported
 ;; - using fill-paragraph depends on the current intent state which can be confusing
 ;; - program should find the indentation state depending on the current line indentation
 ;; - filling should fill all parts that don't fit the current indentation
+;; - erratic behaviour of screenplay-fill-paragraph when on empty lines
 
-(defconst screenplay-version "0.1.0"
+(defconst screenplay-version "0.1.2"
   "Current screenplay-mode version number")
 
 ;;;###autoload
@@ -68,22 +67,30 @@ at the end of the mode line.
   (define-key screenplay-mode-map (kbd "C-c C-u") 'screenplay-upcase-line)
   (define-key screenplay-mode-map (kbd "C-<up>") 'screenplay-backward-paragraph)
   (define-key screenplay-mode-map (kbd "C-<down>") 'screenplay-forward-paragraph)
+  (define-key screenplay-mode-map (kbd "C-c C-c") 'screenplay-get-indent-from-margin)
+  (define-key screenplay-mode-map (kbd "C-c C-e") 'screenplay-get-characters)
+  (define-key screenplay-mode-map (kbd "C-M-c") 'screenplay-previous-character)
   (define-key screenplay-mode-map (kbd "RET") 'screenplay-newline-and-indent)
   (define-key screenplay-mode-map (kbd "DEL") 'screenplay-delete-backward-char)
-  
   (add-hook 'post-self-insert-hook 'screenplay-post-self-insert-hook nil t)
+  (setq indent-tabs-mode nil)
   (screenplay-mode-line-show)
-  (screenplay-update-indent))
+  (screenplay-update-indent)
+  (screenplay-get-characters))
 
 (setq adaptive-fill-mode nil)
 
 (defvar screenplay-margin-ring (make-ring 6))
-(ring-insert screenplay-margin-ring '("Transition" 40 20))
-(ring-insert screenplay-margin-ring '("Character Name" 20 40)) 
-(ring-insert screenplay-margin-ring '("Parenthetical" 15 25)) 
-(ring-insert screenplay-margin-ring '("Dialogue" 10 35))
-(ring-insert screenplay-margin-ring '("Action" 0 60)) 
-(ring-insert screenplay-margin-ring '("Slugline" 0 60))
+(ring-insert screenplay-margin-ring 5)
+(ring-insert screenplay-margin-ring 4) 
+(ring-insert screenplay-margin-ring 3) 
+(ring-insert screenplay-margin-ring 2)
+(ring-insert screenplay-margin-ring 1) 
+(ring-insert screenplay-margin-ring 0)
+
+(setq sp-indent-names '("Slugline" "Action" "Dialogue" "Parenthetical" "Character Name" "Transition"))
+(setq sp-indent-margins '(0 0 10 15 20 40))
+(setq sp-indent-fills '(60 60 35 25 40 20))
 
 (setq sp-slugline 0)
 (setq sp-action 1)
@@ -92,13 +99,19 @@ at the end of the mode line.
 (setq sp-character 4)
 (setq sp-transition 5)
 
-(defvar screenplay-current-indent 0)
-(defvar screenplay-last-indent 0)
+(setq screenplay-current-indent 0)
+(setq screenplay-last-indent 0)
 
 (setq screenplay-mode-line "")
 
+(defun screenplay-get-indent (indent-n)
+  (ring-ref screenplay-margin-ring indent-n))
+
 (defun screenplay-indent-name (indent-n)
-  (nth 0 (ring-ref screenplay-margin-ring indent-n)))
+  (nth (screenplay-get-indent indent-n) sp-indent-names))
+
+(defun screenplay-indent-margin (indent-n)
+  (nth (screenplay-get-indent indent-n) sp-indent-margins))
 
 (defun screenplay-mode-line-show ()
   (add-to-list 'mode-line-format 'screenplay-mode-line t))
@@ -123,29 +136,28 @@ at the end of the mode line.
       (- this-point (point)))))
 
 (defun screenplay-update-indent ()
-  (let* ((indent (ring-ref screenplay-margin-ring screenplay-current-indent))
-	 (margin-name (nth 0 indent))
-	 (margin (nth 1 indent))
-	 (fill (nth 2 indent)))
+  (let* ((indent-n (screenplay-get-indent screenplay-current-indent))
+	 (margin-name (screenplay-indent-name indent-n))
+	 (margin (screenplay-indent-margin indent-n))
+	 (fill (nth indent-n sp-indent-fills)))
     (screenplay-set-margins margin fill)
     (indent-to-left-margin)
     (setq screenplay-mode-line margin-name)
     (force-mode-line-update)
-    (if (string-equal margin-name "Parenthetical")
+    (if (eq indent-n sp-parenthetical)
 	(let ((pos (screenplay-point-in-line-indented))
 	      line-length-indented)
-	  (screenplay-add-parenthesis)
-	  (back-to-indentation)
-	  (forward-char (+ 1 pos)))
-      (if (string-equal (screenplay-indent-name screenplay-last-indent) "Parenthetical")
+	  (screenplay-add-parenthesis))
+      (if (eq (screenplay-get-indent screenplay-last-indent) sp-parenthetical)
 	  (screenplay-remove-parenthesis)))))
 
 (defun screenplay-add-parenthesis ()
-  (back-to-indentation)
-  (when (not (looking-at "()$"))
-    (insert "(")
-    (move-end-of-line nil)
-    (insert ")")))
+  (save-excursion
+    (back-to-indentation)
+    (when (not (looking-at "(.*)$"))
+      (insert "(")
+      (move-end-of-line nil)
+      (insert ")"))))
 				    
 (defun screenplay-remove-parenthesis ()
   "Delete parenthesis at the beginning and end of curent line"
@@ -154,16 +166,16 @@ at the end of the mode line.
 	  (back-to-indentation)
 	  (looking-at "(.*)$"))
 	(progn
-	  (delete-forward-char 1 nil)
+	  (delete-forward-char 1)
 	  (move-end-of-line nil)
-	  (backward-delete-char 1 nil)))))
-	      
+	  (backward-delete-char 1)))))
+
 (defun screenplay-next-indent (arg)
   "Loops forward through the indentations available"
   (interactive "P")
   (setq screenplay-last-indent screenplay-current-indent)
   (if (not arg) (setq screenplay-current-indent (+ screenplay-current-indent 1)))
-	(screenplay-update-indent))
+  (screenplay-update-indent))
 
 (defun screenplay-previous-indent ()
   "Loops backwards through the indentations available"
@@ -177,10 +189,10 @@ at the end of the mode line.
   (upcase-region (line-beginning-position) (line-end-position)))
 
 (defun screenplay-post-self-insert-hook ()
-  (let ((indent (screenplay-indent-name screenplay-current-indent)))
-    (when (or (string-equal indent "Slugline")
-	      (string-equal indent "Character Name")
-	      (string-equal indent "Transition"))
+  (let ((indent (screenplay-get-indent screenplay-current-indent)))
+    (when (or (eq indent sp-slugline)
+	      (eq indent sp-character)
+	      (eq indent sp-transition))
       (insert (upcase (delete-and-extract-region (- (point) 1) (point)))))))
 
 (defun screenplay-on-last-line-p ()
@@ -321,8 +333,7 @@ Returns t as required by fill-paragraph-function."
 (defun screenplay-newline-and-indent ()
   (interactive)
   (and
-   (string-equal (screenplay-indent-name screenplay-current-indent)
-		 (screenplay-indent-name sp-parenthetical))
+   (eq (screenplay-get-indent screenplay-current-indent) sp-parenthetical)
    (looking-at ")$")
    (move-end-of-line nil))
   (newline)
@@ -339,5 +350,84 @@ It deletes an empty line if it is empty, otherwise just calls delete-backward-ch
 	(move-end-of-line nil)
 	(delete-region (point) end))
     (delete-backward-char N KILLFLAG)))
+
+(defun screenplay-current-line-indentation ()
+  (- (screenplay-point-at-indentation) (line-beginning-position)))
+
+(defun screenplay-forward-paragraph-correct ()
+  (interactive)
+  (screenplay-forward-paragraph)
+  (while (and (not (eq (point) (point-max)))
+	      (not (eq (screenplay-current-line-indentation)
+		      (screenplay-indent-margin screenplay-current-indent))))
+      (screenplay-forward-paragraph)))
+
+(defun screenplay-find-paragraph-indent-forward (indent)
+  (interactive)
+  (screenplay-forward-paragraph)
+  (let ((found nil))
+    (while (and (not (eq (point) (point-max)))
+		(not (setq found
+			   (eq (screenplay-current-line-indentation)
+			       (nth indent sp-indent-margins)))))
+      (screenplay-forward-paragraph))
+    found))
+
+(defvar screenplay-character-list '()
+  "List of characters in current screenplay")
+
+(defun screenplay-get-char-name-parenthetical (line)
+  "Divides character name from parentheticals in a string"
+  (let* ((pos (string-match " *(.*)$" line))
+	 (pos (if pos pos (length line)))
+	 (char-name (substring line 0 pos))
+	 (parens (substring line pos)))
+    (cons char-name parens)))
+
+(defun screenplay-get-characters ()
+  (interactive)
+  (save-excursion
+    (beginning-of-buffer)
+    (while (not (eq (point) (point-max)))
+      (if (screenplay-find-paragraph-indent-forward sp-character)
+	  (let* ((this-line (buffer-substring
+			     (screenplay-point-at-indentation)
+			     (line-end-position)))
+		 (char-name (car (screenplay-get-char-name-parenthetical this-line))))
+	    (setq screenplay-character-list
+		  (if (not (member char-name screenplay-character-list))
+		      (reverse (cons char-name (reverse screenplay-character-list)))
+		    screenplay-character-list)))))))
+
+(defun screenplay-previous-character ()
+  (interactive)
+  (if (and (eq screenplay-current-indent sp-character)
+	   (eq (screenplay-current-line-indentation)
+	       (nth sp-character sp-indent-margins)))
+      (let* ((this-line (delete-and-extract-region
+			 (screenplay-point-at-indentation)
+			 (line-end-position)))
+	     (char-name-new (car screenplay-character-list))
+	     (line-div (screenplay-get-char-name-parenthetical this-line))
+	     (char-name-old (car line-div))
+	     (line-parens (cdr line-div)))
+	(if (and (not (string-equal char-name-old "")) 
+		 (not (member char-name-old screenplay-character-list)))
+	    (setq screenplay-character-list
+		  (reverse (cons char-name-old (reverse screenplay-character-list)))))
+	(setq screenplay-character-list
+	      (reverse (cons char-name-new (reverse (cdr screenplay-character-list)))))
+	(indent-to-left-margin)
+	(insert char-name-new line-parens))))
+
+(defun screenplay-get-indent-from-margin ()
+  (interactive)
+  (let ((indent 0)
+	(this-indent (screenplay-current-line-indentation)))
+    (while (and (<= indent (length sp-indent-margins))
+		(not (eq this-indent (nth indent sp-indent-margins))))
+      (setq indent (+ 1 indent)))
+    (setq screenplay-current-indent indent)
+    (screenplay-update-indent)))
 
 (provide 'screenplay)

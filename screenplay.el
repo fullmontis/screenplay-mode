@@ -80,7 +80,7 @@ at the end of the mode line.
 
 (setq adaptive-fill-mode nil)
 
-(defvar screenplay-margin-ring (make-ring 6))
+(setq screenplay-margin-ring (make-ring 6))
 (ring-insert screenplay-margin-ring 5)
 (ring-insert screenplay-margin-ring 4) 
 (ring-insert screenplay-margin-ring 3) 
@@ -147,7 +147,9 @@ at the end of the mode line.
     (if (eq indent-n sp-parenthetical)
 	(let ((pos (screenplay-point-in-line-indented))
 	      line-length-indented)
-	  (screenplay-add-parenthesis))
+	  (screenplay-add-parenthesis)
+	  (if (looking-at "(.*)$")
+	      (forward-char)))
       (if (eq (screenplay-get-indent screenplay-last-indent) sp-parenthetical)
 	  (screenplay-remove-parenthesis)))))
 
@@ -373,8 +375,7 @@ It deletes an empty line if it is empty, otherwise just calls delete-backward-ch
       (screenplay-forward-paragraph))
     found))
 
-(defvar screenplay-character-list '()
-  "List of characters in current screenplay")
+(setq screenplay-character-list '())
 
 (defun screenplay-get-char-name-parenthetical (line)
   "Divides character name from parentheticals in a string"

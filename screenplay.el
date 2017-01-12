@@ -88,16 +88,15 @@ at the end of the mode line.
 (ring-insert screenplay-margin-ring 1) 
 (ring-insert screenplay-margin-ring 0)
 
-(setq sp-indent-names '("Slugline" "Action" "Dialogue" "Parenthetical" "Character Name" "Transition"))
-(setq sp-indent-margins '(0 0 10 15 20 40))
-(setq sp-indent-fills '(60 60 35 25 40 20))
+(setq sp-indent-names '("Action" "Dialogue" "Parenthetical" "Character Name" "Transition"))
+(setq sp-indent-margins '(0 10 15 20 40))
+(setq sp-indent-fills '(60 35 25 40 20))
 
-(setq sp-slugline 0)
-(setq sp-action 1)
-(setq sp-dialogue 2)
-(setq sp-parenthetical 3)
-(setq sp-character 4)
-(setq sp-transition 5)
+(setq sp-action 0)
+(setq sp-dialogue 1)
+(setq sp-parenthetical 2)
+(setq sp-character 3)
+(setq sp-transition 4)
 
 (setq screenplay-current-indent 0)
 (setq screenplay-last-indent 0)
@@ -192,8 +191,7 @@ at the end of the mode line.
 
 (defun screenplay-post-self-insert-hook ()
   (let ((indent (screenplay-get-indent screenplay-current-indent)))
-    (when (or (eq indent sp-slugline)
-	      (eq indent sp-character)
+    (when (or (eq indent sp-character)
 	      (eq indent sp-transition))
       (insert (upcase (delete-and-extract-region (- (point) 1) (point)))))))
 
@@ -424,11 +422,17 @@ It deletes an empty line if it is empty, otherwise just calls delete-backward-ch
 (defun screenplay-get-indent-from-margin ()
   (interactive)
   (let ((indent 0)
-	(this-indent (screenplay-current-line-indentation)))
-    (while (and (<= indent (length sp-indent-margins))
-		(not (eq this-indent (nth indent sp-indent-margins))))
+	(this-indent (screenplay-current-line-indentation))
+	(found nil))
+    (while (and (not found)
+		(<= indent (length sp-indent-margins)))
+      (if (eq this-indent (nth indent sp-indent-margins))
+	  (setq found indent))
       (setq indent (+ 1 indent)))
-    (setq screenplay-current-indent indent)
-    (screenplay-update-indent)))
+    (if found
+	(progn
+	  (setq screenplay-current-indent found)
+	  (screenplay-update-indent))
+      (message "Current intentation doesn't correspond to any known margin!"))))
 
 (provide 'screenplay)

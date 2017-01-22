@@ -47,11 +47,10 @@
 (define-derived-mode screenplay-mode fundamental-mode "Screenplay"
   "Major mode for editing screenplays.
 
-There are six indentations that can be used for formatting the
+There are five indentations that can be used for formatting the
 text of the screenplay:
 
-- Slugline
-- Action block
+- Slugline/Action block
 - Dialogue
 - Parenthetical
 - Character Name
@@ -75,8 +74,7 @@ at the end of the mode line.
   (add-hook 'post-self-insert-hook 'screenplay-post-self-insert-hook nil t)
   (setq indent-tabs-mode nil)
   (screenplay-mode-line-show)
-  (screenplay-update-indent)
-  (screenplay-get-characters))
+  (screenplay-update-indent))
 
 (setq adaptive-fill-mode nil)
 
@@ -88,7 +86,7 @@ at the end of the mode line.
 (ring-insert screenplay-margin-ring 1) 
 (ring-insert screenplay-margin-ring 0)
 
-(setq sp-indent-names '("Action" "Dialogue" "Parenthetical" "Character Name" "Transition"))
+(setq sp-indent-names '("Slugline/Action" "Dialogue" "Parenthetical" "Character Name" "Transition"))
 (setq sp-indent-margins '(0 10 15 20 40))
 (setq sp-indent-fills '(60 35 25 40 20))
 

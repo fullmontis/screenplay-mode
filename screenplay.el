@@ -431,6 +431,6 @@ It deletes an empty line if it is empty, otherwise just calls delete-backward-ch
 	(progn
 	  (setq screenplay-current-indent found)
 	  (screenplay-update-indent))
-      (message "Current intentation doesn't correspond to any known margin!"))))
+      (message "Current intentation doesn't correspond to any known margin! Please check for any spurious tabs."))))
 
 (provide 'screenplay)

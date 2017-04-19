@@ -14,24 +14,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;; TODO: 
-;; - PDF export
-;; - title page
-;; - conversion from/to fountain
-;; - scene numbers
-
-;; TOFIX:
-;; - currently only one line parentheticals are supported
-;; - using fill-paragraph depends on the current intent state which can be confusing
-;; - program should find the indentation state depending on the current line indentation
-;; - filling should fill all parts that don't fit the current indentation
-;; - erratic behaviour of screenplay-fill-paragraph when on empty lines
-
 (defconst screenplay-version "0.1.2"
   "Current screenplay-mode version number")
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.scr\\'" . screenplay-mode))
+(add-to-list 'auto-mode-alist '("\\.scp\\'" . screenplay-mode))
 
 (defgroup screenplay nil
   "Screenplay editing."

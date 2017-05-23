@@ -65,8 +65,7 @@ at the end of the mode line.
 
 (setq adaptive-fill-mode nil)
 
-(setq screenplay-margin-ring (make-ring 6))
-(ring-insert screenplay-margin-ring 5)
+(setq screenplay-margin-ring (make-ring 5))
 (ring-insert screenplay-margin-ring 4) 
 (ring-insert screenplay-margin-ring 3) 
 (ring-insert screenplay-margin-ring 2)
